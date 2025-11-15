@@ -89,3 +89,14 @@ func (s *StarExpr) String() string {
 	}
 	return "*"
 }
+
+type BinaryExpr struct {	//binary expression
+	Left Expression
+	Operator string	// =, !=, <, >, <=, >=, AND, OR
+	Right Expression
+}
+
+func (b *BinaryExpr) expressionNode() {}
+func (b *BinaryExpr) String() string {
+	return "(" + b.Left.String() + " " + b.Operator + " " + b.Right.String() + ")"	
+}
