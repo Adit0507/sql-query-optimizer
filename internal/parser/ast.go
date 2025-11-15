@@ -76,3 +76,16 @@ func (c *ColumnRef) String() string {
 
 	return c.Column
 }
+
+// SELECT *
+type StarExpr struct {
+	Table string
+}
+
+func (s *StarExpr) expressionNode() {}
+func (s *StarExpr) String() string {
+	if s.Table != "" {
+		return s.Table + ".*"
+	}
+	return "*"
+}
