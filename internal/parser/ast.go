@@ -90,13 +90,37 @@ func (s *StarExpr) String() string {
 	return "*"
 }
 
-type BinaryExpr struct {	//binary expression
-	Left Expression
-	Operator string	// =, !=, <, >, <=, >=, AND, OR
-	Right Expression
+type BinaryExpr struct { //binary expression
+	Left     Expression
+	Operator string // =, !=, <, >, <=, >=, AND, OR
+	Right    Expression
 }
 
 func (b *BinaryExpr) expressionNode() {}
 func (b *BinaryExpr) String() string {
-	return "(" + b.Left.String() + " " + b.Operator + " " + b.Right.String() + ")"	
+	return "(" + b.Left.String() + " " + b.Operator + " " + b.Right.String() + ")"
+}
+
+type Literal struct {
+	Type  LiteralType
+	Value interface{}
+}
+
+type LiteralType int
+
+const (
+	IntLiteral LiteralType = iota
+	StringLiteral
+)
+
+func (l *Literal) expressionNode() {}
+func (l *Literal) String() string {
+	switch l.Type {
+	case IntLiteral:
+		return string(rune(l.Value.(int)))
+
+	case StringLiteral:
+		return "'" + l.Value.(string) + "'"	
+	}
+	return ""
 }
