@@ -37,3 +37,28 @@ func TestLexer(t *testing.T) {
 		}
 	}
 }
+
+func TestParseSelectWithWhere(t *testing.T) {
+	input := `SELECT id, name FROM users WHERE id = 5`
+
+	p := NewParser(input)
+	stmt := p.Parse()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parser has errors: %v", p.Errors())
+	}
+
+	selectStmt := stmt.(*SelectStatement)
+	if selectStmt.Where == nil {
+		t.Fatal("expected WHERE clause, got nil")
+	}
+
+	whereExpr, ok := selectStmt.Where.(*BinaryExpr)
+	if !ok {
+		t.Fatalf("WHERE is not BinaryExpr, got %T", selectStmt.Where)
+	}
+
+	if whereExpr.Operator != "=" {
+		t.Fatalf("expected operator '=', got '%s'", whereExpr.Operator)
+	}
+}
