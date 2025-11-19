@@ -68,7 +68,8 @@ func (p *Parser) Parse() Statement {
 func (p *Parser) parseSelectStatement() *SelectStatement {
 	stmt := &SelectStatement{}
 
-	if !p.expectPeek(ASTERISK) && !p.peekTokenIs(IDENT) {
+	if !(p.peekTokenIs(ASTERISK) || p.peekTokenIs(IDENT)) {
+		p.addError("expected column name or '*'")
 		return nil
 	}
 
@@ -129,7 +130,7 @@ func (p *Parser) parseOrExpression() Expression {
 
 func (p *Parser) parseAndExpression() Expression {
 	left := p.parseComparisionExpression()
-	
+
 	for p.peekTokenIs(AND) {
 		p.nextToken()
 		op := p.curToken.Literal
@@ -141,7 +142,7 @@ func (p *Parser) parseAndExpression() Expression {
 			Right:    right,
 		}
 	}
-	
+
 	return left
 }
 func (p *Parser) parseComparisionExpression() Expression {
