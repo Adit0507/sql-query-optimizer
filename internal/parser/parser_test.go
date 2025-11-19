@@ -62,3 +62,32 @@ func TestParseSelectWithWhere(t *testing.T) {
 		t.Fatalf("expected operator '=', got '%s'", whereExpr.Operator)
 	}
 }
+
+func TestParseSelectWitJoin(t *testing.T) {
+	input := `SELECT users.id, orders.amount FROM users JOIN orders ON users.id = orders.user_id`
+
+	p := NewParser(input)
+	stmt := p.Parse()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parser has errors: %v", p.Errors())
+	}
+
+	selectStmt := stmt.(*SelectStatement)
+	if len(selectStmt.Joins) != 1 {
+		t.Fatalf("expected 1 join, got %d", len(selectStmt.Joins))
+	}
+
+	join := selectStmt.Joins[0]
+	if join.Type != InnerJoin {
+		t.Fatalf("expected InnerJoin, got %v", join.Type)
+	}
+
+	if join.Table.Name != "orders" {
+		t.Fatalf("expected join table 'orders', got '%s'", join.Table.Name)
+	}
+
+	if join.Condition == nil {
+		t.Fatal("expected join condition, got nil")
+	}
+}
