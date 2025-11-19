@@ -91,3 +91,28 @@ func TestParseSelectWitJoin(t *testing.T) {
 		t.Fatal("expected join condition, got nil")
 	}
 }
+
+func TestParseComplexWhere(t *testing.T) {
+	input := `SELECT * FROM users WHERE age > 18 AND status = 'active'`
+
+	p := NewParser(input)
+	stmt := p.Parse()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("parser has errors: %v", p.Errors())
+	}
+
+	selectStmt := stmt.(*SelectStatement)
+	if selectStmt.Where == nil {
+		t.Fatal("expected WHERE clause, got nil")
+	}
+	
+	andExpr, ok := selectStmt.Where.(*BinaryExpr)
+	if !ok {
+		t.Fatalf("WHERE is not BinaryExpr, got %T", selectStmt.Where)
+	}
+	
+	if andExpr.Operator != "AND" {
+		t.Fatalf("expected AND operator, got '%s'", andExpr.Operator)
+	}
+}
