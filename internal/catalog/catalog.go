@@ -85,3 +85,53 @@ func (c *Catalog) LoadFromFile(filepath string) error {
 func (c *Catalog) RegisterTable(table *TableInfo) {
 	c.tables[table.Name] = table
 }
+
+func (c *Catalog) GetTable(name string) (*TableInfo, error) {
+	table, ok := c.tables[name]
+	if !ok {
+		return nil, fmt.Errorf("table '%s' not found", name)
+	}
+
+	return table, nil
+}
+
+func (t *TableInfo) GetColumn(name string) (*Column, error) {
+	for i := range t.Columns {
+		if t.Columns[i].Name == name {
+			return &t.Columns[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("column '%s' not found in table '%s'", name, t.Name)
+}
+
+func (t *TableInfo) GetColumnNames() []string {
+	names := make([]string, len(t.Columns))
+
+	for i, col := range t.Columns {
+		names[i] = col.Name
+	}
+
+	return names
+}
+
+// chekcin if index exists on columns
+func (t *TableInfo) HasIndex(cols []string) bool {
+	for _, idx := range t.Indexes {
+		if len(idx.Columns) != len(cols) {
+			continue
+		}
+		match := true
+		for i, col := range cols {
+			if idx.Columns[i] != col {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+
+	return false
+}
