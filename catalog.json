@@ -1,0 +1,63 @@
+[
+  {
+    "name": "users",
+    "columns": [
+      {"name": "id", "type": 0},
+      {"name": "name", "type": 1},
+      {"name": "email", "type": 1},
+      {"name": "age", "type": 0},
+      {"name": "city", "type": 1}
+    ],
+    "indexes": [
+      {"name": "idx_id", "columns": ["id"]},
+      {"name": "idx_email", "columns": ["email"]}
+    ],
+    "statistics": {
+      "row_count": 1000,
+      "distinct_count": {
+        "id": 1000,
+        "email": 1000,
+        "city": 50,
+        "age": 80
+      },
+      "null_count": {
+        "id": 0,
+        "email": 0,
+        "city": 10,
+        "age": 5
+      }
+    },
+    "data_file": "data/users.json"
+  },
+  {
+    "name": "orders",
+    "columns": [
+      {"name": "id", "type": 0},
+      {"name": "user_id", "type": 0},
+      {"name": "product", "type": 1},
+      {"name": "amount", "type": 0},
+      {"name": "status", "type": 1}
+    ],
+    "indexes": [
+      {"name": "idx_id", "columns": ["id"]},
+      {"name": "idx_user_id", "columns": ["user_id"]}
+    ],
+    "statistics": {
+      "row_count": 5000,
+      "distinct_count": {
+        "id": 5000,
+        "user_id": 800,
+        "product": 100,
+        "status": 4
+      },
+      "null_count": {
+        "id": 0,
+        "user_id": 0,
+        "product": 0,
+        "amount": 0,
+        "status": 0
+      }
+    },
+    "data_file": "data/orders.json"
+  }
+]
