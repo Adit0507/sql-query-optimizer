@@ -77,3 +77,49 @@ func (l *LogicalProject) Schema() []catalog.Column {
 func (l *LogicalProject) String() string {
 	return fmt.Sprintf("Project(%v)", l.ColumnNames)
 }
+
+// join operation
+type LogicalJoin struct {
+	Left      LogicalPlan
+	Right     LogicalPlan
+	JoinType  JoinType
+	Condition Expr
+}
+
+type JoinType int
+
+const (
+	InnerJoin JoinType = iota
+	LeftJoin
+	RightJoin
+)
+
+func (j JoinType) String() string {
+	switch j {
+	case InnerJoin:
+		return "INNER"
+	case LeftJoin:
+		return "LEFT"
+	case RightJoin:
+		return "RIGHT"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+func (l *LogicalJoin) Children() []LogicalPlan {
+	return []LogicalPlan{l.Left, l.Right}
+}
+func (l *LogicalJoin) Schema() []catalog.Column {
+	leftSchema := l.Left.Schema()
+	rightSchema := l.Right.Schema()
+	
+	schema := make([]catalog.Column, len(leftSchema)+len(rightSchema))
+	copy(schema, leftSchema)
+	copy(schema[len(leftSchema):], rightSchema)
+
+	return schema
+}
+func (l *LogicalJoin) String() string {
+	return fmt.Sprintf("Join(%s, %s)", l.JoinType, l.Condition.String())
+}
