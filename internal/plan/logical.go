@@ -136,3 +136,34 @@ func (c *ColumnExpr) String() string {
 
 	return c.Column
 }
+
+type LiteralExpr struct { //literal value
+	Value interface{}
+	Type  catalog.DataType
+}
+
+func (l *LiteralExpr) String() string {
+	return fmt.Sprintf("%v", l.Value)
+}
+
+type BinaryExpr struct { //binary operation
+	Left     Expr
+	Operator string
+	Right    Expr
+}
+
+func (b *BinaryExpr) String() string {
+	return fmt.Sprintf("(%s %s %s)", b.Left.String(), b.Operator, b.Right.String())
+}
+
+// SELECT *
+type StarExpr struct {
+	Table string
+}
+
+func (s *StarExpr) String() string {
+	if s.Table != "" {
+		return s.Table + ".*"
+	}
+	return "*"
+}
