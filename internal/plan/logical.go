@@ -113,7 +113,7 @@ func (l *LogicalJoin) Children() []LogicalPlan {
 func (l *LogicalJoin) Schema() []catalog.Column {
 	leftSchema := l.Left.Schema()
 	rightSchema := l.Right.Schema()
-	
+
 	schema := make([]catalog.Column, len(leftSchema)+len(rightSchema))
 	copy(schema, leftSchema)
 	copy(schema[len(leftSchema):], rightSchema)
@@ -122,4 +122,17 @@ func (l *LogicalJoin) Schema() []catalog.Column {
 }
 func (l *LogicalJoin) String() string {
 	return fmt.Sprintf("Join(%s, %s)", l.JoinType, l.Condition.String())
+}
+
+type ColumnExpr struct { //column reference
+	Table  string
+	Column string
+}
+
+func (c *ColumnExpr) String() string {
+	if c.Table != "" {
+		return c.Table + "." + c.Column
+	}
+
+	return c.Column
 }
