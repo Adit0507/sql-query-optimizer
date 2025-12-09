@@ -38,3 +38,46 @@ func (p *Planner) planSelect(stmt *parser.SelectStatement) (LogicalPlan, error){
 
 	return plan, nil
 }
+
+func (p *Planner) convertExpr(expr parser.Expression) (Expr, error) {
+	switch e := expr.(type) {
+	case *parser.ColumnRef:
+		return &ColumnExpr{
+			Table:  e.Table,
+			Column: e.Column,
+		}, nil
+
+	case *parser.Literal:
+		var dataType catalog.DataType
+
+		switch e.Type {
+		case parser.IntLiteral:
+			dataType = catalog.IntType
+		case parser.StringLiteral:
+			dataType = catalog.StringType
+
+		}
+		return &LiteralExpr{
+			Value: e.Value,
+			Type:  dataType,
+		}, nil
+
+	case *parser.BinaryExpr:
+		left, err := p.convertExpr(e.Left)
+		if err != nil {
+			return nil, err
+		}
+		right, err := p.convertExpr(e.Right)
+		if err != nil {
+			return nil, err
+		}
+		return &BinaryExpr{
+			Left:     left,
+			Operator: e.Operator,
+			Right:    right,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported expression type: %T", expr)
+	}
+}
