@@ -31,9 +31,12 @@ func ( e*Executor) Execute(plan plan.LogicalPlan) ([]Row, error) {
 
 	var results []Row
 	for {
-		
+		row, ok := iter.Next()
+		if !ok {
+			break
+		}
+		results = append(results, row)
 	}
-
 
 	return  results, nil
 }
