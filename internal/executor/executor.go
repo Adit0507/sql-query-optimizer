@@ -1,6 +1,10 @@
 package executor
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
+
 	"github.com/Adit0507/sql-query-optimizer/internal/catalog"
 	"github.com/Adit0507/sql-query-optimizer/internal/plan"
 )
@@ -22,10 +26,10 @@ func NewExecutor(cat *catalog.Catalog) *Executor {
 	}
 }
 
-func ( e*Executor) Execute(plan plan.LogicalPlan) ([]Row, error) {
+func (e *Executor) Execute(plan plan.LogicalPlan) ([]Row, error) {
 	iter, err := e.executeNode(plan)
 	if err != nil {
-		return  nil, err
+		return nil, err
 	}
 	defer iter.Close()
 
@@ -38,7 +42,45 @@ func ( e*Executor) Execute(plan plan.LogicalPlan) ([]Row, error) {
 		results = append(results, row)
 	}
 
-	return  results, nil
+	return results, nil
 }
 
-func (e *Executor) executeNode(plan plan.LogicalPlan) (Iterator, error) {}
+func (e *Executor) executeNode(node plan.LogicalPlan) (Iterator, error) {
+	switch n := node.(type) {
+	case *plan.LogicalScan:
+		return e.executeScan(n)
+		
+	default:
+		return nil, fmt.Errorf("unsupported plan node: %T", node)
+	}
+}
+
+type scanIterator struct {
+	rows  []Row
+	index int
+}
+
+func (s *scanIterator) Next() (Row, bool) {
+	if s.index >= len(s.rows) {
+		return nil, false
+	}
+	row := s.rows[s.index]
+	s.index++
+
+	return row, true
+}
+func (s *scanIterator) Close(){}
+
+func (e *Executor) executeScan(scan *plan.LogicalScan) (Iterator, error) {
+	data, err := os.ReadFile(scan.Table.DataFile)
+	if err !=nil{
+		return nil, fmt.Errorf("failed to read data file: %w", err)
+	}
+
+	var rows []Row
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, fmt.Errorf("failed to parse data: %w", err)
+	}
+
+	return &scanIterator{rows: rows, index: 0}, nil
+}
