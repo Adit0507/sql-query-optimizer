@@ -49,7 +49,7 @@ func (e *Executor) executeNode(node plan.LogicalPlan) (Iterator, error) {
 	switch n := node.(type) {
 	case *plan.LogicalScan:
 		return e.executeScan(n)
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported plan node: %T", node)
 	}
@@ -69,11 +69,11 @@ func (s *scanIterator) Next() (Row, bool) {
 
 	return row, true
 }
-func (s *scanIterator) Close(){}
+func (s *scanIterator) Close() {}
 
 func (e *Executor) executeScan(scan *plan.LogicalScan) (Iterator, error) {
 	data, err := os.ReadFile(scan.Table.DataFile)
-	if err !=nil{
+	if err != nil {
 		return nil, fmt.Errorf("failed to read data file: %w", err)
 	}
 
@@ -84,3 +84,42 @@ func (e *Executor) executeScan(scan *plan.LogicalScan) (Iterator, error) {
 
 	return &scanIterator{rows: rows, index: 0}, nil
 }
+
+type filterIterator struct {
+	input     Iterator
+	predicate plan.Expr
+}
+
+func (f *filterIterator) Next() (Row, bool) {
+	for {
+		row, ok := f.input.Next()
+		if !ok {
+			return nil, false
+		}
+
+		result, err := evaluateExpr(f.predicate, row)
+		if err != nil {
+			continue
+		}
+
+		if boolResult, ok := result.(bool); ok && boolResult {
+			return row, true
+		}
+	}
+}
+func (f *filterIterator) Close() {
+	f.input.Close()
+}
+
+func (e *Executor) executeFilter(filter *plan.LogicalFilter) (Iterator, error) {
+	input, err := e.executeNode(filter.Input)
+	if err != nil {
+		return nil, err
+	}
+
+	return &filterIterator{
+		input:     input,
+		predicate: filter.Predicate,
+	}, nil
+}
+
