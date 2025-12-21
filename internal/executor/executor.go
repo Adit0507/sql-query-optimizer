@@ -148,7 +148,21 @@ func (p *projectIterator) Next() (Row, bool) {
 	return ans, true
 }
 
-func(p *projectIterator) Close(){
+func (p *projectIterator) Close() {
 	p.input.Close()
 }
+
+func (e *Executor) executeProject(proj *plan.LogicalProject) (Iterator, error) {
+	input, err := e.executeNode(proj.Input)
+	if err != nil {
+		return nil, err
+	}
+
+	return &projectIterator{
+		input:       input,
+		projections: proj.Projections,
+		columnNames: proj.ColumnNames,
+	}, nil
+}
+
 
