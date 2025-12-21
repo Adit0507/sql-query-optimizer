@@ -50,6 +50,13 @@ func (e *Executor) executeNode(node plan.LogicalPlan) (Iterator, error) {
 	case *plan.LogicalScan:
 		return e.executeScan(n)
 
+	case *plan.LogicalFilter:
+		return e.executeFilter(n)
+	case *plan.LogicalJoin:
+		return e.executeJoin(n)
+	case *plan.LogicalProject:
+		return e.executeProject(n)
+
 	default:
 		return nil, fmt.Errorf("unsupported plan node: %T", node)
 	}
@@ -216,4 +223,123 @@ func (j *joinIterator) Next() (Row, bool) {
 func (j *joinIterator) Close() {
 	j.left.Close()
 	j.right.Close()
+}
+
+func (e *Executor) executeJoin(join *plan.LogicalJoin) (Iterator, error) {
+	left, err := e.executeNode(join.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	right, err := e.executeNode(join.Right)
+	if err != nil {
+		return nil, err
+	}
+
+	var rightRows []Row
+	for {
+		row, ok := right.Next()
+		if !ok {
+			break
+		}
+
+		rightRows = append(rightRows, row)
+	}
+
+	return &joinIterator{
+		left:      left,
+		right:     right,
+		condition: join.Condition,
+		joinType:  join.JoinType,
+		rightRows: rightRows,
+		rightIdx:  0,
+	}, nil
+}
+
+func evaluateExpr(expr plan.Expr, row Row) (interface{}, error) {
+	switch e := expr.(type) {
+	case *plan.ColumnExpr:
+		val, ok := row[e.Column]
+		if !ok {
+			return nil, fmt.Errorf("column %s not found", e.Column)
+		}
+		return val, nil
+
+	case *plan.LiteralExpr:
+		return e.Value, nil
+
+	case *plan.BinaryExpr:
+		left, err := evaluateExpr(e.Left, row)
+		if err != nil {
+			return nil, err
+		}
+		right, err := evaluateExpr(e.Right, row)
+		if err != nil {
+			return nil, err
+		}
+
+		return evaluateBinaryOp(left, e.Operator, right)
+
+	default:
+		return nil, fmt.Errorf("unsuppiorted expression type: %T", expr)
+
+	}
+}
+
+func evaluateBinaryOp(left interface{}, op string, right interface{}) (interface{}, error) {
+	switch op {
+	case "=":
+		return left == right, nil
+	case "!=", "<>":
+		return left != right, nil
+	case ">":
+		return compareValues(left, right) > 0, nil
+	case "<":
+		return compareValues(left, right) < 0, nil
+	case ">=":
+		return compareValues(left, right) >= 0, nil
+	case "<=":
+		return compareValues(left, right) <= 0, nil
+	case "AND":
+		leftBool, _ := left.(bool)
+		rightBool, _ := right.(bool)
+		return leftBool && rightBool, nil
+	case "OR":
+		leftBool, _ := left.(bool)
+		rightBool, _ := right.(bool)
+		return leftBool || rightBool, nil
+	default:
+		return nil, fmt.Errorf("unsupoorted operator %s", op)
+	}
+}
+
+func compareValues(left, right interface{}) int {
+	switch l := left.(type) {
+	case int:
+		r, _ := right.(int)
+		if l < r {
+			return -1
+		} else if l > r {
+			return 1
+		}
+		return 0
+	case float64:
+		r, _ := right.(float64)
+		if l < r {
+			return -1
+		} else if l > r {
+			return 1
+		}
+		return 0
+	case string:
+		r, _ := right.(string)
+		if l < r {
+			return -1
+		} else if l > r {
+			return 1
+		}
+		return 0
+	default:
+		return 0
+	}
 }
