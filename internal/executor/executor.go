@@ -165,4 +165,55 @@ func (e *Executor) executeProject(proj *plan.LogicalProject) (Iterator, error) {
 	}, nil
 }
 
+// join iterator
+type joinIterator struct {
+	left      Iterator
+	right     Iterator
+	condition plan.Expr
+	joinType  plan.JoinType
+	leftRow   Row
+	rightRows []Row
+	rightIdx  int
+}
 
+func (j *joinIterator) Next() (Row, bool) {
+	for {
+		if j.leftRow == nil {
+			row, ok := j.left.Next()
+			if !ok {
+				return nil, false
+			}
+
+			j.leftRow = row
+			j.rightIdx = 0
+		}
+
+		if j.rightIdx >= len(j.rightRows) {
+			j.leftRow = nil
+			continue
+		}
+		rightRow := j.rightRows[j.rightIdx]
+		j.rightIdx++
+
+		// combining rows
+		combined := make(Row)
+		for k, v := range j.leftRow {
+			combined[k] = v
+		}
+		for k, v := range rightRow {
+			combined[k] = v
+		}
+
+		// evaluate comdition
+		ans, err := evaluateExpr(j.condition, combined)
+		if err != nil || ans != true {
+			continue
+		}
+
+		return combined, true
+	}
+}
+func (j *joinIterator) Close() {
+	j.left.Close()
+	j.right.Close()
+}
