@@ -123,3 +123,32 @@ func (e *Executor) executeFilter(filter *plan.LogicalFilter) (Iterator, error) {
 	}, nil
 }
 
+type projectIterator struct {
+	input       Iterator
+	projections []plan.Expr
+	columnNames []string
+}
+
+func (p *projectIterator) Next() (Row, bool) {
+	row, ok := p.input.Next()
+	if !ok {
+		return nil, false
+	}
+
+	ans := make(Row)
+	for i, expr := range p.projections {
+		value, err := evaluateExpr(expr, row)
+		if err != nil {
+			continue
+		}
+
+		ans[p.columnNames[i]] = value
+	}
+
+	return ans, true
+}
+
+func(p *projectIterator) Close(){
+	p.input.Close()
+}
+
